@@ -1,168 +1,510 @@
+```html
 <!DOCTYPE html>
 <html lang="en-us">
-	<head>
+<head>
     <base href="https://cdn.jsdelivr.net/gh/genizy/web-port@main/raft/">
-		<meta charset="utf-8" />
-		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-		<meta
-			name="viewport"
-			content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"
-		/>
-		<title>Unity WebGL Player | Raft</title>
-		<style>
-			* {
-				margin: 0;
-				padding: 0;
-				border: 0;
-				overflow: hidden;
-			}
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-			body {
-				background: #000;
-				position: fixed;
-				width: 100%;
-				height: 100%;
-			}
+    <title>Raft</title>
 
-			.webgl-content {
-				position: absolute;
-				width: 100%;
-				height: 100%;
-			}
-
-			#unityContainer {
-				position: absolute;
-				width: 100%;
-				height: 100%;
-			}
-
-			.footer {
-				position: absolute;
-				bottom: 0;
-				width: 100%;
-				text-align: center;
-				padding: 10px 0;
-				background: rgba(0, 0, 0, 0.5);
-				z-index: 100;
-			}
-
-			.fullscreen {
-				cursor: pointer;
-				display: inline-block;
-				width: 24px;
-				height: 24px;
-			}
-		</style>
-		<script src="Build/UnityLoader.js"></script>
-		<script>
-      let max = 0;
-let done = 0;
-function mergeFiles(fileParts) {
-	return new Promise((resolve, reject) => {
-		let buffers = [];
-
-		function fetchPart(index) {
-			if (index >= fileParts.length) {
-				let mergedBlob = new Blob(buffers);
-				let mergedFileUrl = URL.createObjectURL(mergedBlob);
-				resolve(mergedFileUrl);
-				return;
-			}
-			fetch(fileParts[index])
-				.then((response) => response.arrayBuffer())
-				.then((data) => {
-					buffers.push(data);
-					done = done+1;
-					document.querySelector("#loading-text").textContent = `LOADING... (${done}/${max})`;
-					fetchPart(index + 1);
-				})
-				.catch(reject);
-		}
-		fetchPart(0);
-	});
-}
-
-UnityLoader.downloadJob = function(e, t) {
-        var r = new XMLHttpRequest;
-        if (t.parameters.url.startsWith("Build/blob")) {
-          r.open("GET", t.parameters.url.replace("Build/", ""));
-        } else {
-          r.open("GET", t.parameters.url);
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            box-sizing: border-box;
         }
-        r.responseType = "arraybuffer",
-        r.onload = function() {
-            UnityLoader.Compression.decompress(new Uint8Array(r.response), function(e) {
-                t.complete(e)
-            })
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: Arial, Helvetica, sans-serif;
         }
-        ,
-        t.parameters.onprogress && r.addEventListener("progress", t.parameters.onprogress),
-        t.parameters.onload && r.addEventListener("load", t.parameters.onload),
-        r.send()
-    };
 
-function getParts(file, start, end) {
-	let parts = [];
-	for (let i = start; i <= end; i++) {
-		parts.push(file + ".part" + i);
-	}
-	max = max+end;
-	return parts;
-}
+        .webgl-content,
+        #unityContainer {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
 
-			function resizeUnityContainer() {
-				var container = document.getElementById("unityContainer");
-				container.style.width = window.innerWidth + "px";
-				container.style.height = window.innerHeight + "px";
-			}
-			Promise.all([
-				mergeFiles(getParts("Build/Raft-WEBGL.data.unityweb", 1, 3)),
-        mergeFiles(getParts("Build/Raft-WEBGL.asm.code.unityweb", 1, 2)),
-			]).then(([dataUrl, asmCode]) => {
-				window.dataUrll = dataUrl;
-        window.asmUrll = asmCode;
-				var json = {
-"TOTAL_MEMORY": 268435456,
-"dataUrl": dataUrl,
-"asmCodeUrl": asmCode,
-"asmMemoryUrl": "Raft-WEBGL.asm.memory.unityweb",
-"asmFrameworkUrl": "Raft-WEBGL.asm.framework.unityweb",
-"splashScreenStyle": "Dark",
-"backgroundColor": "#000000"
-};
-				let blob = new Blob([JSON.stringify(json)], {
-					type: "application/json",
-				});
-				let blobUrl = URL.createObjectURL(blob);
-				window.addEventListener("resize", resizeUnityContainer);
-				UnityLoader.instantiate("unityContainer", json, {
-					url: blobUrl,
-          Module: {
-						onRuntimeInitialized: function () {
-							resizeUnityContainer();
-							document.querySelector("#loading-text").remove();
-						},
-					},
-				});
-			});
-		</script>
-	</head>
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: white;
+            background:
+                linear-gradient(
+                    rgba(0, 0, 0, 0.48),
+                    rgba(0, 0, 0, 0.78)
+                ),
+                url("https://d1lss44hh2trtw.cloudfront.net/resize?type=webp&url=https%3A%2F%2Fshacknews-www.s3.amazonaws.com%2Fassets%2Farticle%2F2022%2F06%2F29%2Fraft-game-review_feature.jpg&width=1032&sign=Rf_ItUBZCUkpo_-rr2H1mgtvOfS1PdCY1bsVg3h67Ck")
+                center / cover no-repeat;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
 
-	<body>
-		<div class="webgl-content">
-			<div
-				id="loading-text"
-				style="
-					color: white;
-					font-size: 48px;
-					font-family: cursive;
-					text-align: center;
-					margin-top: 20px;
-				"
-			>
-				LOADING...
-			</div>
-			<div id="unityContainer"></div>
-		</div>
-	</body>
+        #loading-screen.finished {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .loading-card {
+            width: min(480px, 100%);
+            padding: 30px;
+            background: rgba(10, 10, 10, 0.82);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            box-shadow: 0 15px 60px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+        }
+
+        .eyebrow {
+            color: #b5b5b5;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            margin-bottom: 9px;
+        }
+
+        .game-title {
+            font-size: 48px;
+            font-weight: 900;
+            letter-spacing: -2px;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            color: #bcbcbc;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        #loading-text {
+            min-width: 0;
+            font-size: 13px;
+            font-weight: bold;
+            overflow-wrap: anywhere;
+        }
+
+        #percentage {
+            flex-shrink: 0;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 5px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.18);
+            border-radius: 10px;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: white;
+            border-radius: 10px;
+            transition: width 0.2s ease;
+        }
+
+        .file-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-top: 13px;
+            color: #aaa;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        #file-name {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        #download-size {
+            flex-shrink: 0;
+            text-align: right;
+        }
+
+        .footer {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            color: #777;
+            font-size: 10px;
+            letter-spacing: 1.5px;
+        }
+
+        @media (max-width: 480px) {
+            .loading-card {
+                padding: 23px;
+            }
+
+            .game-title {
+                font-size: 40px;
+            }
+        }
+    </style>
+
+    <script src="Build/UnityLoader.js"></script>
+
+    <script>
+        let max = 0;
+        let done = 0;
+        let totalDownloaded = 0;
+        let totalExpected = 0;
+        let loadingFinished = false;
+
+        const activeDownloads = new Map();
+
+        function formatBytes(bytes) {
+            if (!Number.isFinite(bytes) || bytes < 0) {
+                return "Calculating...";
+            }
+
+            if (bytes < 1024 * 1024) {
+                return (bytes / 1024).toFixed(1) + " KB";
+            }
+
+            return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+        }
+
+        function updateProgress() {
+            if (loadingFinished) return;
+
+            let downloaded = totalDownloaded;
+            let expected = totalExpected;
+
+            for (const item of activeDownloads.values()) {
+                downloaded += item.loaded;
+                expected += item.total;
+            }
+
+            let percent = expected > 0
+                ? Math.floor((downloaded / expected) * 100)
+                : Math.floor((done / Math.max(max, 1)) * 100);
+
+            percent = Math.max(0, Math.min(99, percent));
+
+            document.getElementById("progress-bar").style.width =
+                percent + "%";
+
+            document.getElementById("percentage").textContent =
+                percent + "%";
+
+            document.getElementById("download-size").textContent =
+                expected > 0
+                    ? formatBytes(downloaded) + " / " + formatBytes(expected)
+                    : formatBytes(downloaded) + " downloaded";
+        }
+
+        function mergeFiles(fileParts, label) {
+            return new Promise((resolve, reject) => {
+                const buffers = [];
+                let index = 0;
+
+                function fetchPart() {
+                    if (index >= fileParts.length) {
+                        resolve(URL.createObjectURL(new Blob(buffers)));
+                        return;
+                    }
+
+                    const url = fileParts[index++];
+                    const filename = url.split("/").pop();
+
+                    document.getElementById("loading-text").textContent =
+                        "Downloading " + label;
+
+                    document.getElementById("file-name").textContent =
+                        filename;
+
+                    const progress = {
+                        loaded: 0,
+                        total: 0
+                    };
+
+                    activeDownloads.set(url, progress);
+
+                    const request = new XMLHttpRequest();
+                    request.open("GET", url);
+                    request.responseType = "arraybuffer";
+
+                    request.addEventListener("progress", event => {
+                        progress.loaded = event.loaded;
+                        progress.total = event.lengthComputable
+                            ? event.total
+                            : 0;
+
+                        updateProgress();
+                    });
+
+                    request.onload = () => {
+                        if (request.status < 200 || request.status >= 300) {
+                            activeDownloads.delete(url);
+                            reject(new Error(
+                                "Failed to download " + filename +
+                                " (HTTP " + request.status + ")"
+                            ));
+                            return;
+                        }
+
+                        const data = request.response;
+                        buffers.push(data);
+
+                        totalDownloaded += data.byteLength;
+
+                        if (progress.total > 0) {
+                            totalExpected += progress.total;
+                        }
+
+                        activeDownloads.delete(url);
+                        done++;
+
+                        document.getElementById("file-name").textContent =
+                            filename + " — downloaded";
+
+                        updateProgress();
+                        fetchPart();
+                    };
+
+                    request.onerror = () => {
+                        activeDownloads.delete(url);
+                        reject(new Error("Network error: " + filename));
+                    };
+
+                    request.send();
+                }
+
+                fetchPart();
+            });
+        }
+
+        UnityLoader.downloadJob = function(e, t) {
+            const request = new XMLHttpRequest();
+            const url = t.parameters.url;
+
+            if (url.startsWith("Build/blob")) {
+                request.open("GET", url.replace("Build/", ""));
+            } else {
+                request.open("GET", url);
+            }
+
+            request.responseType = "arraybuffer";
+
+            request.addEventListener("progress", event => {
+                document.getElementById("loading-text").textContent =
+                    "Loading game engine";
+
+                document.getElementById("file-name").textContent =
+                    url.split("/").pop();
+
+                if (event.lengthComputable) {
+                    document.getElementById("download-size").textContent =
+                        formatBytes(event.loaded) + " / " +
+                        formatBytes(event.total);
+
+                    document.getElementById("progress-bar").style.width =
+                        Math.min(99, (event.loaded / event.total) * 100) + "%";
+
+                    document.getElementById("percentage").textContent =
+                        Math.floor((event.loaded / event.total) * 100) + "%";
+                }
+
+                if (t.parameters.onprogress) {
+                    t.parameters.onprogress(event);
+                }
+            });
+
+            request.onload = function() {
+                if (request.status < 200 || request.status >= 300) {
+                    document.getElementById("loading-text").textContent =
+                        "Download failed";
+
+                    document.getElementById("file-name").textContent =
+                        "Refresh the page to try again.";
+
+                    return;
+                }
+
+                UnityLoader.Compression.decompress(
+                    new Uint8Array(request.response),
+                    function(result) {
+                        t.complete(result);
+                    }
+                );
+            };
+
+            request.onerror = function() {
+                document.getElementById("loading-text").textContent =
+                    "Connection error";
+
+                document.getElementById("file-name").textContent =
+                    "Check your connection and refresh.";
+            };
+
+            if (t.parameters.onprogress) {
+                // Progress listener is registered above.
+            }
+
+            if (t.parameters.onload) {
+                request.addEventListener("load", t.parameters.onload);
+            }
+
+            request.send();
+        };
+
+        function getParts(file, start, end) {
+            const parts = [];
+
+            for (let i = start; i <= end; i++) {
+                parts.push(file + ".part" + i);
+                max++;
+            }
+
+            return parts;
+        }
+
+        function resizeUnityContainer() {
+            const container = document.getElementById("unityContainer");
+            container.style.width = window.innerWidth + "px";
+            container.style.height = window.innerHeight + "px";
+        }
+
+        function showLoadingError(error) {
+            console.error(error);
+
+            document.getElementById("loading-text").textContent =
+                "Download failed";
+
+            document.getElementById("file-name").textContent =
+                error.message || "Please refresh to try again.";
+
+            document.getElementById("percentage").textContent = "ERROR";
+        }
+
+        Promise.all([
+            mergeFiles(
+                getParts("Build/Raft-WEBGL.data.unityweb", 1, 3),
+                "game data"
+            ),
+            mergeFiles(
+                getParts("Build/Raft-WEBGL.asm.code.unityweb", 1, 2),
+                "game engine"
+            )
+        ]).then(([dataUrl, asmCode]) => {
+            window.dataUrll = dataUrl;
+            window.asmUrll = asmCode;
+
+            document.getElementById("loading-text").textContent =
+                "Starting Raft";
+
+            document.getElementById("file-name").textContent =
+                "Initializing Unity WebGL";
+
+            const json = {
+                "TOTAL_MEMORY": 268435456,
+                "dataUrl": dataUrl,
+                "asmCodeUrl": asmCode,
+                "asmMemoryUrl": "Raft-WEBGL.asm.memory.unityweb",
+                "asmFrameworkUrl": "Raft-WEBGL.asm.framework.unityweb",
+                "splashScreenStyle": "Dark",
+                "backgroundColor": "#000000"
+            };
+
+            const blob = new Blob(
+                [JSON.stringify(json)],
+                { type: "application/json" }
+            );
+
+            const blobUrl = URL.createObjectURL(blob);
+
+            window.addEventListener("resize", resizeUnityContainer);
+
+            UnityLoader.instantiate("unityContainer", json, {
+                url: blobUrl,
+                Module: {
+                    onRuntimeInitialized: function() {
+                        loadingFinished = true;
+                        resizeUnityContainer();
+
+                        document.getElementById("progress-bar").style.width =
+                            "100%";
+
+                        document.getElementById("percentage").textContent =
+                            "100%";
+
+                        document.getElementById("loading-text").textContent =
+                            "Ready";
+
+                        document.getElementById("file-name").textContent =
+                            "Entering the world";
+
+                        setTimeout(() => {
+                            document.getElementById("loading-screen")
+                                .classList.add("finished");
+                        }, 400);
+                    }
+                }
+            });
+        }).catch(showLoadingError);
+    </script>
+</head>
+
+<body>
+    <div class="webgl-content">
+        <div id="unityContainer"></div>
+    </div>
+
+    <div id="loading-screen">
+        <div class="loading-card">
+            <div class="eyebrow">Survival starts here</div>
+            <div class="game-title">RAFT</div>
+
+            <div class="description">
+                Preparing your world. Downloading game files and initializing the engine.
+            </div>
+
+            <div class="status-row">
+                <div id="loading-text">Preparing downloads...</div>
+                <div id="percentage">0%</div>
+            </div>
+
+            <div class="progress-track">
+                <div id="progress-bar"></div>
+            </div>
+
+            <div class="file-info">
+                <div id="file-name">Waiting for game files</div>
+                <div id="download-size">Calculating...</div>
+            </div>
+
+            <div class="footer">
+                UNITY WEBGL · LOADING GAME ASSETS
+            </div>
+        </div>
+    </div>
+</body>
 </html>
+```
